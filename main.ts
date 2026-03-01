@@ -19,7 +19,7 @@ export interface Game {
   board: Record<Habitat, Bird[]>;
 }
 
-const initalState: Game = {
+const initialState: Game = {
   hand: [
     { name: "Bird A", points: 1 },
     { name: "Bird B", points: 2 },
@@ -97,7 +97,7 @@ const loop = (state: Game): Effect.Effect<Game> =>
 const main = Effect.gen(function* () {
   yield* Console.log("=== Welcome to Divspan! ===");
   yield* Console.log("\nPlay all 5 birds into habitats. Score = sum of bird points.");
-  const finalState = yield* loop(initalState);
+  const finalState = yield* loop(initialState);
   render(finalState);
   yield* Console.log(`\nGame over! Final score: ${calculateScore(finalState)}`);
 });

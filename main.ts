@@ -14,7 +14,7 @@ function randomHabitat(): Habitat {
   return habitats[Math.floor(Math.random() * habitats.length)];
 }
 
-interface Game {
+export interface Game {
   hand: Bird[];
   board: Record<Habitat, Bird[]>;
 }
@@ -40,11 +40,11 @@ function playBird(state: Game, bird: Bird, habitat: Habitat): Game {
   };
 }
 
-function isGameOver(game: Game): boolean {
+export function isGameOver(game: Game): boolean {
   return game.hand.length === 0;
 }
 
-function calculateScore({ board }: Game): number {
+export function calculateScore({ board }: Game): number {
   return [...board.forest, ...board.grassland, ...board.wetland].reduce(
     (sum, bird) => sum + bird.points,
     0,

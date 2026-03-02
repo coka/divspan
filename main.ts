@@ -10,10 +10,6 @@ const habitats = ["forest", "grassland", "wetland"] as const;
 
 type Habitat = (typeof habitats)[number];
 
-function randomHabitat(): Habitat {
-  return habitats[Math.floor(Math.random() * habitats.length)];
-}
-
 export interface Game {
   hand: Bird[];
   board: Record<Habitat, Bird[]>;
@@ -51,13 +47,15 @@ export function calculateScore({ board }: Game): number {
   );
 }
 
+async function ask(question: string): Promise<string> {
+  const readline = createInterface({ input: process.stdin, output: process.stdout });
+  const answer = await readline.question(question);
+  readline.close();
+  return answer;
+}
+
 const chooseBird = (hand: Bird[]): Effect.Effect<Bird> =>
-  Effect.promise(async () => {
-    const readline = createInterface({ input: process.stdin, output: process.stdout });
-    const answer = await readline.question(`\nChoose a bird (1-${hand.length}): `);
-    readline.close();
-    return answer;
-  }).pipe(
+  Effect.promise(() => ask(`\nChoose a bird (1-${hand.length}): `)).pipe(
     Effect.map((input) => parseInt(input, 10) - 1),
     Effect.andThen((index) =>
       index >= 0 && index < hand.length
@@ -65,6 +63,17 @@ const chooseBird = (hand: Bird[]): Effect.Effect<Bird> =>
         : Console.log("Invalid choice, try again.").pipe(Effect.andThen(() => chooseBird(hand))),
     ),
   );
+
+const chooseHabitat: Effect.Effect<Habitat> = Effect.promise(() =>
+  ask(`Choose a habitat ([1] Forest, [2] Grassland, [3] Wetland): `),
+).pipe(
+  Effect.map((input) => parseInt(input, 10) - 1),
+  Effect.andThen((index) =>
+    index >= 0 && index < habitats.length
+      ? Effect.succeed(habitats[index])
+      : Console.log("Invalid choice, try again.").pipe(Effect.andThen(() => chooseHabitat)),
+  ),
+);
 
 function renderBird(bird: Bird): string {
   return `${bird.name} (${bird.points})`;
@@ -91,7 +100,8 @@ const loop = (state: Game): Effect.Effect<Game> =>
     if (isGameOver(state)) return state;
     render(state);
     const bird = yield* chooseBird(state.hand);
-    return yield* loop(playBird(state, bird, randomHabitat()));
+    const habitat = yield* chooseHabitat;
+    return yield* loop(playBird(state, bird, habitat));
   });
 
 const main = Effect.gen(function* () {

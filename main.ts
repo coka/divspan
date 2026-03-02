@@ -1,9 +1,21 @@
 import { Console, Effect } from "effect";
 import { createInterface } from "readline/promises";
+import birds from "./birds";
+import { type Bird } from "./types";
 
-interface Bird {
-  name: string;
-  points: number;
+/**
+ * In-place Fisher-Yates shuffle.
+ */
+function shuffle<T>(array: T[]): T[] {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function draw<T>(from: T[], count: number): T[] {
+  return from.splice(0, count);
 }
 
 const habitats = ["forest", "grassland", "wetland"] as const;
@@ -11,23 +23,24 @@ const habitats = ["forest", "grassland", "wetland"] as const;
 type Habitat = (typeof habitats)[number];
 
 export interface Game {
+  deck: Bird[];
   hand: Bird[];
   board: Record<Habitat, Bird[]>;
 }
 
-const initialState: Game = {
-  hand: [
-    { name: "Bird A", points: 1 },
-    { name: "Bird B", points: 2 },
-    { name: "Bird C", points: 3 },
-    { name: "Bird D", points: 4 },
-    { name: "Bird E", points: 5 },
-  ],
-  board: { forest: [], grassland: [], wetland: [] },
-};
+function newGame(): Game {
+  const deck = shuffle([...birds]);
+  const hand = draw(deck, 5);
+  return {
+    deck,
+    hand,
+    board: { forest: [], grassland: [], wetland: [] },
+  }
+}
 
 function playBird(state: Game, bird: Bird, habitat: Habitat): Game {
   return {
+    ...state,
     hand: state.hand.filter((b) => b !== bird),
     board: {
       ...state.board,
@@ -107,7 +120,7 @@ const loop = (state: Game): Effect.Effect<Game> =>
 const main = Effect.gen(function* () {
   yield* Console.log("=== Welcome to Divspan! ===");
   yield* Console.log("\nPlay all 5 birds into habitats. Score = sum of bird points.");
-  const finalState = yield* loop(initialState);
+  const finalState = yield* loop(newGame());
   render(finalState);
   yield* Console.log(`\nGame over! Final score: ${calculateScore(finalState)}`);
 });

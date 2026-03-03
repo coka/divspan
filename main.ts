@@ -35,7 +35,7 @@ function newGame(): Game {
     deck,
     hand,
     board: { forest: [], grassland: [], wetland: [] },
-  }
+  };
 }
 
 function playBird(state: Game, bird: Bird, habitat: Habitat): Game {

@@ -1,28 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { Effect } from "effect";
 import birds, { acornWoodpecker, americanAvocet, americanBittern } from "./birds";
-import { Action, calculateScore, Game, isGameOver, newGame, step } from "./main";
-import { InvalidHabitat, Shuffle } from "./types";
-
-function testGame(overrides: Partial<Game> = {}): Game {
-  return {
-    deck: [...birds],
-    hand: [],
-    board: { forest: [], grassland: [], wetland: [] },
-    food: 0,
-    eggs: 0,
-    turnsLeft: 26,
-    ...overrides,
-  };
-}
-
-const identityShuffle = Effect.provideService(Shuffle, {
-  shuffle: <T>(arr: T[]): T[] => arr,
-});
-
-const reverseShuffle = Effect.provideService(Shuffle, {
-  shuffle: <T>(arr: T[]): T[] => arr.reverse(),
-});
+import { Action, calculateScore, Game, isGameOver, newGame, step } from "./engine";
+import { identityShuffle, reverseShuffle } from "./shuffling";
+import { InvalidHabitat } from "./types";
 
 describe("shuffle", () => {
   test("draws cards according to provided shuffle function", () => {
@@ -39,9 +20,13 @@ describe("shuffle", () => {
   });
 });
 
+function testGame(overrides: Partial<Game> = {}): Game {
+  return newGame(overrides).pipe(identityShuffle, Effect.runSync);
+}
+
 describe("isGameOver", () => {
   test("true when hand is empty", () => {
-    expect(isGameOver(testGame())).toBeTrue();
+    expect(isGameOver(testGame({ hand: [] }))).toBeTrue();
   });
 
   test("false when hand has birds", () => {
@@ -119,12 +104,15 @@ describe("step", () => {
   });
 
   test("activating a wetland draws a card", async () => {
-    const next = step(testGame(), {
+    const game = testGame();
+    const initialHandSize = game.hand.length;
+    const initialDeckSize = game.deck.length;
+    const next = step(game, {
       type: "ACTIVATE_HABITAT",
       habitat: "wetland",
     }).pipe(Effect.runSync);
-    expect(next.hand.length).toBe(1);
-    expect(next.deck.length).toBe(birds.length - 1);
+    expect(next.hand.length).toBe(initialHandSize + 1);
+    expect(next.deck.length).toBe(initialDeckSize - 1);
   });
 });
 

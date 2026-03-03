@@ -1,4 +1,4 @@
-import { Data } from "effect";
+import { Context, Data } from "effect";
 
 export const habitats = ["forest", "grassland", "wetland"] as const;
 
@@ -14,3 +14,8 @@ export class InvalidHabitat extends Data.TaggedError("InvalidHabitat")<{
   bird: Bird;
   habitat: Habitat;
 }> {}
+
+export class Shuffle extends Context.Tag("ShuffleService")<
+  Shuffle,
+  { readonly shuffle: <T>(array: T[]) => T[] }
+>() {}

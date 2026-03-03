@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { Effect } from "effect";
 import birds, { acornWoodpecker, americanAvocet, americanBittern } from "./birds";
-import { Action, calculateScore, Game, isGameOver, step } from "./main";
-import { InvalidHabitat } from "./types";
+import { Action, calculateScore, Game, isGameOver, newGame, step } from "./main";
+import { InvalidHabitat, Shuffle } from "./types";
 
 function testGame(overrides: Partial<Game> = {}): Game {
   return {
@@ -15,6 +15,29 @@ function testGame(overrides: Partial<Game> = {}): Game {
     ...overrides,
   };
 }
+
+const identityShuffle = Effect.provideService(Shuffle, {
+  shuffle: <T>(arr: T[]): T[] => arr,
+});
+
+const reverseShuffle = Effect.provideService(Shuffle, {
+  shuffle: <T>(arr: T[]): T[] => arr.reverse(),
+});
+
+describe("shuffle", () => {
+  test("draws cards according to provided shuffle function", () => {
+    const game = newGame().pipe(identityShuffle, Effect.runSync);
+    expect(game.hand).toEqual(birds.slice(0, 5));
+    expect(game.deck).toEqual(birds.slice(5));
+  });
+
+  test("with reverse shuffle, deals last 5 birds", () => {
+    const game = newGame().pipe(reverseShuffle, Effect.runSync);
+    const reversed = [...birds].reverse();
+    expect(game.hand).toEqual(reversed.slice(0, 5));
+    expect(game.deck).toEqual(reversed.slice(5));
+  });
+});
 
 describe("isGameOver", () => {
   test("true when hand is empty", () => {

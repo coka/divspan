@@ -1,7 +1,7 @@
 import { Console, Effect } from "effect";
 import { createInterface } from "readline/promises";
 import birds from "./birds";
-import { type Bird, type Habitat, InvalidHabitat, habitats } from "./types";
+import { type Bird, type Habitat, InvalidHabitat, Shuffle, habitats } from "./types";
 
 /**
  * In-place Fisher-Yates shuffle.
@@ -13,6 +13,8 @@ function shuffle<T>(array: T[]): T[] {
   }
   return array;
 }
+
+const randomShuffle = Effect.provideService(Shuffle, { shuffle });
 
 function draw<T>(from: T[], count: number): T[] {
   return from.splice(0, count);
@@ -27,17 +29,20 @@ export interface Game {
   turnsLeft: number;
 }
 
-function newGame(): Game {
-  const deck = shuffle([...birds]);
-  const hand = draw(deck, 5);
-  return {
-    deck,
-    hand,
-    board: { forest: [], grassland: [], wetland: [] },
-    food: 0,
-    eggs: 0,
-    turnsLeft: 26,
-  };
+export function newGame(): Effect.Effect<Game, never, Shuffle> {
+  return Effect.gen(function* () {
+    const { shuffle } = yield* Shuffle;
+    const deck = shuffle([...birds]);
+    const hand = draw(deck, 5);
+    return {
+      deck,
+      hand,
+      board: { forest: [], grassland: [], wetland: [] },
+      food: 0,
+      eggs: 0,
+      turnsLeft: 26,
+    };
+  });
 }
 
 function playBird(state: Game, bird: Bird, habitat: Habitat): Effect.Effect<Game, InvalidHabitat> {
@@ -200,10 +205,10 @@ const loop = (state: Game): Effect.Effect<Game> =>
 const main = Effect.gen(function* () {
   yield* Console.log("=== Welcome to Divspan! ===");
   yield* Console.log("\nPlay birds or activate habitats across 26 turns.");
-  const finalState = yield* loop(newGame());
+  const finalState = yield* loop(yield* newGame());
   render(finalState);
   yield* Console.log(`\nGame over! Final score: ${calculateScore(finalState)}`);
-});
+}).pipe(randomShuffle);
 
 if (import.meta.main) {
   Effect.runPromise(main);

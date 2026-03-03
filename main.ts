@@ -26,6 +26,9 @@ export interface Game {
   deck: Bird[];
   hand: Bird[];
   board: Record<Habitat, Bird[]>;
+  food: number;
+  eggs: number;
+  turnsLeft: number;
 }
 
 function newGame(): Game {
@@ -35,6 +38,9 @@ function newGame(): Game {
     deck,
     hand,
     board: { forest: [], grassland: [], wetland: [] },
+    food: 0,
+    eggs: 0,
+    turnsLeft: 26,
   };
 }
 
@@ -47,6 +53,17 @@ function playBird(state: Game, bird: Bird, habitat: Habitat): Game {
       [habitat]: [...state.board[habitat], bird],
     },
   };
+}
+
+function activateHabitat(state: Game, habitat: Habitat): Game {
+  switch (habitat) {
+    case "forest":
+      return { ...state, food: state.food + 1 };
+    case "grassland":
+      return { ...state, eggs: state.eggs + 2 };
+    case "wetland":
+      return { ...state, hand: state.hand.concat(draw(state.deck, 1)) };
+  }
 }
 
 export function isGameOver(game: Game): boolean {
@@ -88,6 +105,24 @@ const chooseHabitat: Effect.Effect<Habitat> = Effect.promise(() =>
   ),
 );
 
+type Action = "PLAY_BIRD" | "ACTIVATE_HABITAT";
+
+const chooseAction: Effect.Effect<Action> = Effect.promise(() =>
+  ask(`Choose an action ([1] Play bird, [2] Activate habitat): `),
+).pipe(
+  Effect.map((input) => parseInt(input, 10)),
+  Effect.andThen((choice) => {
+    switch (choice) {
+      case 1:
+        return Effect.succeed<Action>("PLAY_BIRD");
+      case 2:
+        return Effect.succeed<Action>("ACTIVATE_HABITAT");
+      default:
+        return Console.log("Invalid choice, try again.").pipe(Effect.andThen(() => chooseAction));
+    }
+  }),
+);
+
 function renderBird(bird: Bird): string {
   return `${bird.name} (${bird.points})`;
 }
@@ -99,10 +134,11 @@ function renderHabitat(birds: Bird[]): string {
 function render(game: Game): void {
   console.log(
     [
-      "\n--- Current board ---\n",
+      `\n--- Turn ${27 - game.turnsLeft} of 26 ---\n`,
       `Forest: ${renderHabitat(game.board.forest)}`,
       `Grassland: ${renderHabitat(game.board.grassland)}`,
       `Wetland: ${renderHabitat(game.board.wetland)}`,
+      `\nFood: ${game.food} seed | Eggs: ${game.eggs} | Deck: ${game.deck.length} birds`,
       `\nHand: ${game.hand.map((b, i) => `[${i + 1}] ${renderBird(b)}`).join(", ") || "(empty)"}`,
     ].join("\n"),
   );
@@ -112,14 +148,27 @@ const loop = (state: Game): Effect.Effect<Game> =>
   Effect.gen(function* () {
     if (isGameOver(state)) return state;
     render(state);
-    const bird = yield* chooseBird(state.hand);
-    const habitat = yield* chooseHabitat;
-    return yield* loop(playBird(state, bird, habitat));
+    const action = yield* chooseAction;
+    let next: Game;
+    switch (action) {
+      case "PLAY_BIRD": {
+        const bird = yield* chooseBird(state.hand);
+        const habitat = yield* chooseHabitat;
+        next = playBird(state, bird, habitat);
+        break;
+      }
+      case "ACTIVATE_HABITAT": {
+        const habitat = yield* chooseHabitat;
+        next = activateHabitat(state, habitat);
+        break;
+      }
+    }
+    return yield* loop({ ...next, turnsLeft: state.turnsLeft - 1 });
   });
 
 const main = Effect.gen(function* () {
   yield* Console.log("=== Welcome to Divspan! ===");
-  yield* Console.log("\nPlay all 5 birds into habitats. Score = sum of bird points.");
+  yield* Console.log("\nPlay birds or activate habitats across 26 turns.");
   const finalState = yield* loop(newGame());
   render(finalState);
   yield* Console.log(`\nGame over! Final score: ${calculateScore(finalState)}`);

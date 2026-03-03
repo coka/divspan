@@ -1,44 +1,36 @@
 # Divspan — Wingspan Board Game in Effect
 
-## Project Overview
-Learning the Effect TypeScript library by building a faithful CLI recreation of the board game Wingspan. Incremental approach: start with simplest playable game, layer complexity one mechanic at a time.
-
 ## Tech Stack
+
 - **Runtime/package manager/test runner:** Bun
 - **Core dependency:** Effect 3.19.19
-- **No tsconfig.json yet** — needs to be added
-- **Single-file structure** — `main.ts` + `main.test.ts` at project root (no src/ dir)
+- **Formatter:** Prettier (printWidth: 100)
 
-## Current State (Step 1 complete)
-The simplest playable game is implemented:
-- 1 player, 5 birds in hand (point values 1-5), free to play
-- Player chooses a bird, habitat is randomly assigned
-- 3 habitats (forest, grassland, wetland)
-- Game ends when hand is empty, score = sum of bird points
+## File Structure
+
+- `types.ts` — shared types (`Bird`, `Habitat`, `Shuffle` service) and domain errors (`InvalidHabitat`)
+- `birds.ts` — all bird data (name, habitats, points); 3 named exports (`acornWoodpecker`, `americanAvocet`, `americanBittern`), rest inline
+- `main.ts` — game engine, CLI loop, rendering, live service wiring
+- `main.test.ts` — Bun tests with `testGame()` factory and `simulate()` helper
 
 ## Code Style Preferences
-- **Mix of pipes and generators**: Pipes for simple linear chains, generators for complex control flow
-- **Pure functions stay pure**: `playBird`, `calculateScore`, `isGameOver` are plain functions, NOT wrapped in Effect
-- **Single file is fine** for now — user prefers organic growth over premature file splitting
-- **User modifies plans to taste** — don't expect code to match plans exactly
 
-## Effect Features Used So Far
-- `Effect.gen` + `yield*` — game loop, main program
+- **Pipes for simple chains, generators for complex control flow**
+- **`Effect.runSync` in tests** (not `runPromise`/async) — all test effects are synchronous
+- **Reusable service providers as constants** in tests (e.g. `const identityShuffle = Effect.provideService(Shuffle, { ... })`)
+- **User edits generated code to taste** — don't expect output to match plans exactly
+- **Single file is fine** for now — organic growth over premature splitting
+
+## Effect Features Used
+
+- `Effect.gen` + `yield*` — game loop, main, newGame
 - `Effect.promise` — wrapping readline
-- `pipe` + `Effect.map` + `Effect.andThen` — chooseBird pipeline
+- `pipe`, `Effect.map`, `Effect.andThen` — pipelines
 - `Console.log` — program output
-- `Effect.runPromise` — running the program
-
-## Pending Review Items
-- Typo: `initalState` → `initialState`
-- Consider exporting `playBird`, `Bird`, `Habitat` for testability
-
-## Incremental Roadmap (see [roadmap.md](./roadmap.md) for details)
-1. ~~Simplest playable game~~ ✓
-2. Typed errors (`TaggedError`, validation)
-3. Services & DI (`Context.Tag`, `Layer`) — PlayerInputService, RandomService
-4. Ref for state management
-5. Food costs & bird feeder
-6. Eggs & drawing cards
-7. Habitat row activation & brown powers
-8. Full Wingspan: white/pink powers, bonus cards, 170-card set, multiplayer
+- `Effect.runPromise` (production) / `Effect.runSync` (tests)
+- `Data.TaggedError` — `InvalidHabitat` domain error
+- `Effect.fail` / `Effect.succeed` — typed error flow
+- `Effect.catchTag` — recovering from specific errors in game loop
+- `Effect.either` — inspecting errors in tests
+- `Context.Tag` — `Shuffle` service for DI
+- `Effect.provideService` — wiring live and test implementations

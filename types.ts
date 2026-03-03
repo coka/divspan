@@ -1,4 +1,16 @@
+import { Data } from "effect";
+
+export const habitats = ["forest", "grassland", "wetland"] as const;
+
+export type Habitat = (typeof habitats)[number];
+
 export interface Bird {
   name: string;
+  habitats: readonly Habitat[];
   points: number;
 }
+
+export class InvalidHabitat extends Data.TaggedError("InvalidHabitat")<{
+  bird: Bird;
+  habitat: Habitat;
+}> {}

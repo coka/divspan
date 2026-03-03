@@ -1,7 +1,7 @@
 import { Console, Effect } from "effect";
 import { createInterface } from "readline/promises";
 import birds from "./birds";
-import { type Bird } from "./types";
+import { type Bird, type Habitat, InvalidHabitat, habitats } from "./types";
 
 /**
  * In-place Fisher-Yates shuffle.
@@ -17,10 +17,6 @@ function shuffle<T>(array: T[]): T[] {
 function draw<T>(from: T[], count: number): T[] {
   return from.splice(0, count);
 }
-
-const habitats = ["forest", "grassland", "wetland"] as const;
-
-type Habitat = (typeof habitats)[number];
 
 export interface Game {
   deck: Bird[];
@@ -44,15 +40,18 @@ function newGame(): Game {
   };
 }
 
-function playBird(state: Game, bird: Bird, habitat: Habitat): Game {
-  return {
+function playBird(state: Game, bird: Bird, habitat: Habitat): Effect.Effect<Game, InvalidHabitat> {
+  if (!bird.habitats.includes(habitat)) {
+    return Effect.fail(new InvalidHabitat({ bird, habitat }));
+  }
+  return Effect.succeed({
     ...state,
     hand: state.hand.filter((b) => b !== bird),
     board: {
       ...state.board,
       [habitat]: [...state.board[habitat], bird],
     },
-  };
+  });
 }
 
 function activateHabitat(state: Game, habitat: Habitat): Game {
@@ -157,17 +156,15 @@ function render(game: Game): void {
   );
 }
 
-export function step(state: Game, action: Action): Game {
-  let next: Game;
-  switch (action.type) {
-    case "PLAY_BIRD":
-      next = playBird(state, action.bird, action.habitat);
-      break;
-    case "ACTIVATE_HABITAT":
-      next = activateHabitat(state, action.habitat);
-      break;
-  }
-  return { ...next, turnsLeft: state.turnsLeft - 1 };
+export function step(state: Game, action: Action): Effect.Effect<Game, InvalidHabitat> {
+  return (() => {
+    switch (action.type) {
+      case "PLAY_BIRD":
+        return playBird(state, action.bird, action.habitat);
+      case "ACTIVATE_HABITAT":
+        return Effect.succeed(activateHabitat(state, action.habitat));
+    }
+  })().pipe(Effect.map((state) => ({ ...state, turnsLeft: state.turnsLeft - 1 })));
 }
 
 const loop = (state: Game): Effect.Effect<Game> =>
@@ -189,7 +186,15 @@ const loop = (state: Game): Effect.Effect<Game> =>
         break;
       }
     }
-    return yield* loop(step(state, action));
+    return yield* step(state, action).pipe(
+      Effect.andThen((next) => loop(next)),
+      Effect.catchTag("InvalidHabitat", (e) =>
+        Console.log(
+          `${e.bird.name} can't live in the ${e.habitat}.`,
+          `\nValid habitats are: ${e.bird.habitats.join(", ")}.`,
+        ).pipe(Effect.andThen(() => loop(state))),
+      ),
+    );
   });
 
 const main = Effect.gen(function* () {

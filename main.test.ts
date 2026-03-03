@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { Effect } from "effect";
 import birds, { acornWoodpecker, americanAvocet, americanBittern } from "./birds";
 import { Action, calculateScore, Game, isGameOver, step } from "./main";
+import { InvalidHabitat } from "./types";
 
 function testGame(overrides: Partial<Game> = {}): Game {
   return {
@@ -51,17 +53,37 @@ describe("step", () => {
         bird: acornWoodpecker,
         habitat: "forest",
       },
-    );
+    ).pipe(Effect.runSync);
     expect(next.hand).toEqual([]);
     expect(next.board.forest).toEqual([acornWoodpecker]);
     expect(next.turnsLeft).toBe(25);
+  });
+
+  test("playing a bird in an invalid habitat returns an error", () => {
+    const result = step(
+      testGame({
+        hand: [acornWoodpecker],
+      }),
+      {
+        type: "PLAY_BIRD",
+        bird: acornWoodpecker,
+        habitat: "wetland",
+      },
+    ).pipe(Effect.either, Effect.runSync);
+    expect(result._tag).toBe("Left");
+    if (result._tag === "Left") {
+      expect(result.left).toBeInstanceOf(InvalidHabitat);
+      expect(result.left._tag).toBe("InvalidHabitat");
+      expect(result.left.bird).toBe(acornWoodpecker);
+      expect(result.left.habitat).toBe("wetland");
+    }
   });
 
   test("activating a forest gains 1 food", () => {
     const next = step(testGame(), {
       type: "ACTIVATE_HABITAT",
       habitat: "forest",
-    });
+    }).pipe(Effect.runSync);
     expect(next.food).toBe(1);
   });
 
@@ -69,22 +91,25 @@ describe("step", () => {
     const next = step(testGame(), {
       type: "ACTIVATE_HABITAT",
       habitat: "grassland",
-    });
+    }).pipe(Effect.runSync);
     expect(next.eggs).toBe(2);
   });
 
-  test("activating a wetland draws a card", () => {
+  test("activating a wetland draws a card", async () => {
     const next = step(testGame(), {
       type: "ACTIVATE_HABITAT",
       habitat: "wetland",
-    });
+    }).pipe(Effect.runSync);
     expect(next.hand.length).toBe(1);
     expect(next.deck.length).toBe(birds.length - 1);
   });
 });
 
-function simulate(game: Game, actions: Action[]): Game {
-  return actions.reduce((state, action) => step(state, action), game);
+function simulate(game: Game, actions: Action[]): Effect.Effect<Game, InvalidHabitat> {
+  return actions.reduce(
+    (state, action) => state.pipe(Effect.andThen((s) => step(s, action))),
+    Effect.succeed(game) as Effect.Effect<Game, InvalidHabitat>,
+  );
 }
 
 test("actions use turns", () => {
@@ -97,5 +122,6 @@ test("actions use turns", () => {
     { type: "ACTIVATE_HABITAT", habitat: "grassland" },
     { type: "ACTIVATE_HABITAT", habitat: "wetland" },
   ];
-  expect(simulate(game, actions).turnsLeft).toBe(22);
+  const result = Effect.runSync(simulate(game, actions));
+  expect(result.turnsLeft).toBe(22);
 });

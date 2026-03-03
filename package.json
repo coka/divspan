@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "start": "bun run src/main.ts"
+  },
   "dependencies": {
     "effect": "3.19.19"
   },

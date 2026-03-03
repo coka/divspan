@@ -8,10 +8,10 @@
 
 ## File Structure
 
-- `types.ts` — shared types (`Bird`, `Habitat`, `Shuffle` service) and domain errors (`InvalidHabitat`)
-- `birds.ts` — all bird data (name, habitats, points); 3 named exports (`acornWoodpecker`, `americanAvocet`, `americanBittern`), rest inline
-- `main.ts` — game engine, CLI loop, rendering, live service wiring
-- `main.test.ts` — Bun tests with `testGame()` factory and `simulate()` helper
+- `src/types.ts` — shared types (`Bird`, `Habitat`, `Shuffle` service) and domain errors (`InvalidHabitat`)
+- `src/birds.ts` — all bird data (name, habitats, points); 3 named exports (`acornWoodpecker`, `americanAvocet`, `americanBittern`), rest inline
+- `src/main.ts` — game engine, CLI loop, rendering, live service wiring
+- `src/main.test.ts` — Bun tests with `testGame()` factory and `simulate()` helper
 
 ## Code Style Preferences
 

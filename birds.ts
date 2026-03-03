@@ -1,9 +1,24 @@
 import { type Bird } from "./types";
 
+export const acornWoodpecker: Bird = {
+  name: "Acorn Woodpecker",
+  points: 5,
+};
+
+export const americanAvocet: Bird = {
+  name: "American Avocet",
+  points: 6,
+};
+
+export const americanBittern: Bird = {
+  name: "American Bittern",
+  points: 7,
+};
+
 const birds: readonly Bird[] = [
-  { name: "Acorn Woodpecker", points: 5 },
-  { name: "American Avocet", points: 6 },
-  { name: "American Bittern", points: 7 },
+  acornWoodpecker,
+  americanAvocet,
+  americanBittern,
   { name: "American Coot", points: 3 },
   { name: "American Crow", points: 4 },
   { name: "American Goldfinch", points: 3 },

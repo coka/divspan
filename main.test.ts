@@ -1,36 +1,101 @@
 import { describe, expect, test } from "bun:test";
-import { calculateScore, Game, isGameOver } from "./main";
+import birds, { acornWoodpecker, americanAvocet, americanBittern } from "./birds";
+import { Action, calculateScore, Game, isGameOver, step } from "./main";
 
-const emptyBoard = { forest: [], grassland: [], wetland: [] };
+function testGame(overrides: Partial<Game> = {}): Game {
+  return {
+    deck: [...birds],
+    hand: [],
+    board: { forest: [], grassland: [], wetland: [] },
+    food: 0,
+    eggs: 0,
+    turnsLeft: 26,
+    ...overrides,
+  };
+}
 
 describe("isGameOver", () => {
   test("true when hand is empty", () => {
-    const state: Game = {
-      hand: [],
-      board: emptyBoard,
-    };
-    expect(isGameOver(state)).toBeTrue();
+    expect(isGameOver(testGame())).toBeTrue();
   });
 
   test("false when hand has birds", () => {
-    const state: Game = {
-      hand: [{ name: "Robin", points: 1 }],
-      board: emptyBoard,
-    };
-    expect(isGameOver(state)).toBeFalse();
+    expect(isGameOver(testGame({ hand: [acornWoodpecker] }))).toBeFalse();
   });
 });
 
 describe("calculateScore", () => {
   test("sums points of all birds on board", () => {
-    const state: Game = {
-      hand: [],
-      board: {
-        forest: [{ name: "Robin", points: 1 }],
-        grassland: [{ name: "Hawk", points: 4 }],
-        wetland: [{ name: "Eagle", points: 5 }],
-      },
-    };
-    expect(calculateScore(state)).toBe(10);
+    expect(
+      calculateScore(
+        testGame({
+          board: {
+            forest: [acornWoodpecker],
+            grassland: [americanAvocet],
+            wetland: [americanBittern],
+          },
+        }),
+      ),
+    ).toBe(18);
   });
+});
+
+describe("step", () => {
+  test("playing a bird moves it to a habitat and uses a turn", () => {
+    const next = step(
+      testGame({
+        hand: [acornWoodpecker],
+      }),
+      {
+        type: "PLAY_BIRD",
+        bird: acornWoodpecker,
+        habitat: "forest",
+      },
+    );
+    expect(next.hand).toEqual([]);
+    expect(next.board.forest).toEqual([acornWoodpecker]);
+    expect(next.turnsLeft).toBe(25);
+  });
+
+  test("activating a forest gains 1 food", () => {
+    const next = step(testGame(), {
+      type: "ACTIVATE_HABITAT",
+      habitat: "forest",
+    });
+    expect(next.food).toBe(1);
+  });
+
+  test("activating a grassland gains 2 eggs", () => {
+    const next = step(testGame(), {
+      type: "ACTIVATE_HABITAT",
+      habitat: "grassland",
+    });
+    expect(next.eggs).toBe(2);
+  });
+
+  test("activating a wetland draws a card", () => {
+    const next = step(testGame(), {
+      type: "ACTIVATE_HABITAT",
+      habitat: "wetland",
+    });
+    expect(next.hand.length).toBe(1);
+    expect(next.deck.length).toBe(birds.length - 1);
+  });
+});
+
+function simulate(game: Game, actions: Action[]): Game {
+  return actions.reduce((state, action) => step(state, action), game);
+}
+
+test("actions use turns", () => {
+  const game = testGame({
+    hand: [acornWoodpecker],
+  });
+  const actions: Action[] = [
+    { type: "PLAY_BIRD", bird: acornWoodpecker, habitat: "forest" },
+    { type: "ACTIVATE_HABITAT", habitat: "forest" },
+    { type: "ACTIVATE_HABITAT", habitat: "grassland" },
+    { type: "ACTIVATE_HABITAT", habitat: "wetland" },
+  ];
+  expect(simulate(game, actions).turnsLeft).toBe(22);
 });

@@ -105,20 +105,33 @@ const chooseHabitat: Effect.Effect<Habitat> = Effect.promise(() =>
   ),
 );
 
-type Action = "PLAY_BIRD" | "ACTIVATE_HABITAT";
+export type PlayBirdAction = {
+  type: "PLAY_BIRD";
+  bird: Bird;
+  habitat: Habitat;
+};
 
-const chooseAction: Effect.Effect<Action> = Effect.promise(() =>
+export type ActivateHabitatAction = {
+  type: "ACTIVATE_HABITAT";
+  habitat: Habitat;
+};
+
+export type Action = PlayBirdAction | ActivateHabitatAction;
+
+const chooseActionType: Effect.Effect<Pick<Action, "type">> = Effect.promise(() =>
   ask(`Choose an action ([1] Play bird, [2] Activate habitat): `),
 ).pipe(
   Effect.map((input) => parseInt(input, 10)),
   Effect.andThen((choice) => {
     switch (choice) {
       case 1:
-        return Effect.succeed<Action>("PLAY_BIRD");
+        return Effect.succeed<Pick<Action, "type">>({ type: "PLAY_BIRD" });
       case 2:
-        return Effect.succeed<Action>("ACTIVATE_HABITAT");
+        return Effect.succeed<Pick<Action, "type">>({ type: "ACTIVATE_HABITAT" });
       default:
-        return Console.log("Invalid choice, try again.").pipe(Effect.andThen(() => chooseAction));
+        return Console.log("Invalid choice, try again.").pipe(
+          Effect.andThen(() => chooseActionType),
+        );
     }
   }),
 );
@@ -144,26 +157,39 @@ function render(game: Game): void {
   );
 }
 
+export function step(state: Game, action: Action): Game {
+  let next: Game;
+  switch (action.type) {
+    case "PLAY_BIRD":
+      next = playBird(state, action.bird, action.habitat);
+      break;
+    case "ACTIVATE_HABITAT":
+      next = activateHabitat(state, action.habitat);
+      break;
+  }
+  return { ...next, turnsLeft: state.turnsLeft - 1 };
+}
+
 const loop = (state: Game): Effect.Effect<Game> =>
   Effect.gen(function* () {
     if (isGameOver(state)) return state;
     render(state);
-    const action = yield* chooseAction;
-    let next: Game;
-    switch (action) {
+    const actionType = yield* chooseActionType;
+    let action: Action;
+    switch (actionType.type) {
       case "PLAY_BIRD": {
         const bird = yield* chooseBird(state.hand);
         const habitat = yield* chooseHabitat;
-        next = playBird(state, bird, habitat);
+        action = { type: "PLAY_BIRD", bird, habitat };
         break;
       }
       case "ACTIVATE_HABITAT": {
         const habitat = yield* chooseHabitat;
-        next = activateHabitat(state, habitat);
+        action = { type: "ACTIVATE_HABITAT", habitat };
         break;
       }
     }
-    return yield* loop({ ...next, turnsLeft: state.turnsLeft - 1 });
+    return yield* loop(step(state, action));
   });
 
 const main = Effect.gen(function* () {

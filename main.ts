@@ -200,4 +200,6 @@ const main = Effect.gen(function* () {
   yield* Console.log(`\nGame over! Final score: ${calculateScore(finalState)}`);
 });
 
-Effect.runPromise(main);
+if (import.meta.main) {
+  Effect.runPromise(main);
+}

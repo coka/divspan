@@ -64,11 +64,11 @@ Wrap `SubscriptionRef` updates with a Node `EventEmitter`. React subscribes via 
 
 The mapping is natural:
 
-| `useSyncExternalStore` contract | Effect primitive |
-|---|---|
-| `subscribe(callback)` | Fork a fiber consuming `ref.changes`, call `callback` on each emission |
-| `getSnapshot()` | `Runtime.runSync(SubscriptionRef.get(ref))` |
-| unsubscribe (returned by subscribe) | `Fiber.interrupt(fiber)` |
+| `useSyncExternalStore` contract     | Effect primitive                                                       |
+| ----------------------------------- | ---------------------------------------------------------------------- |
+| `subscribe(callback)`               | Fork a fiber consuming `ref.changes`, call `callback` on each emission |
+| `getSnapshot()`                     | `Runtime.runSync(SubscriptionRef.get(ref))`                            |
+| unsubscribe (returned by subscribe) | `Fiber.interrupt(fiber)`                                               |
 
 ## Implementation Sketch
 
@@ -89,9 +89,7 @@ export function EffectProvider<R>({
   children: ReactNode;
 }) {
   return (
-    <RuntimeContext.Provider value={runtime as AnyRuntime}>
-      {children}
-    </RuntimeContext.Provider>
+    <RuntimeContext.Provider value={runtime as AnyRuntime}>{children}</RuntimeContext.Provider>
   );
 }
 
@@ -108,17 +106,13 @@ export function useRuntime<R>(): ManagedRuntime.ManagedRuntime<R, never> {
 import { Effect, Fiber, Stream, SubscriptionRef } from "effect";
 import { useSyncExternalStore } from "react";
 
-export function useSubscriptionRef<A>(
-  ref: SubscriptionRef.SubscriptionRef<A>,
-): A {
+export function useSubscriptionRef<A>(ref: SubscriptionRef.SubscriptionRef<A>): A {
   const runtime = useRuntime();
 
   return useSyncExternalStore(
     (onStoreChange) => {
       const fiber = runtime.runFork(
-        ref.changes.pipe(
-          Stream.runForEach(() => Effect.sync(onStoreChange)),
-        ),
+        ref.changes.pipe(Stream.runForEach(() => Effect.sync(onStoreChange))),
       );
       return () => {
         runtime.runFork(Fiber.interrupt(fiber));
@@ -135,24 +129,18 @@ export function useSubscriptionRef<A>(
 // main.ts
 const ShuffleLayer = Layer.succeed(Shuffle, { shuffle: fisherYatesShuffle });
 const runtime = ManagedRuntime.make(ShuffleLayer);
-const gameRef = runtime.runSync(
-  newGame().pipe(Effect.andThen(SubscriptionRef.make)),
-);
+const gameRef = runtime.runSync(newGame().pipe(Effect.andThen(SubscriptionRef.make)));
 
 render(
   <EffectProvider runtime={runtime}>
     <App gameRef={gameRef} />
-  </EffectProvider>
+  </EffectProvider>,
 );
 ```
 
 ```tsx
 // ui.tsx
-export function App({
-  gameRef,
-}: {
-  gameRef: SubscriptionRef.SubscriptionRef<Game>;
-}) {
+export function App({ gameRef }: { gameRef: SubscriptionRef.SubscriptionRef<Game> }) {
   const game = useSubscriptionRef(gameRef); // rerenders automatically
   const runtime = useRuntime();
   const [error, setError] = useState<string | null>(null);
@@ -175,10 +163,10 @@ export function App({
 
 ## State Ownership Boundary
 
-| State | Owner | Rationale |
-|---|---|---|
-| Game (domain) | `SubscriptionRef` in Effect | Single source of truth for engine logic |
-| Phase, error message (UI) | React `useState` | Local to the view, not an engine concern |
+| State                     | Owner                       | Rationale                                |
+| ------------------------- | --------------------------- | ---------------------------------------- |
+| Game (domain)             | `SubscriptionRef` in Effect | Single source of truth for engine logic  |
+| Phase, error message (UI) | React `useState`            | Local to the view, not an engine concern |
 
 This mirrors the Redux convention: shared/domain state in the store, local UI state
 in components.

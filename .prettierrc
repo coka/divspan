@@ -1,3 +1,10 @@
 {
-  "printWidth": 100
+  "overrides": [
+    {
+      "files": "*.{ts,tsx}",
+      "options": {
+        "printWidth": 100
+      }
+    }
+  ]
 }

@@ -89,7 +89,9 @@ export function EffectProvider<R>({
   children: ReactNode;
 }) {
   return (
-    <RuntimeContext.Provider value={runtime as AnyRuntime}>{children}</RuntimeContext.Provider>
+    <RuntimeContext.Provider value={runtime as AnyRuntime}>
+      {children}
+    </RuntimeContext.Provider>
   );
 }
 
@@ -106,7 +108,9 @@ export function useRuntime<R>(): ManagedRuntime.ManagedRuntime<R, never> {
 import { Effect, Fiber, Stream, SubscriptionRef } from "effect";
 import { useSyncExternalStore } from "react";
 
-export function useSubscriptionRef<A>(ref: SubscriptionRef.SubscriptionRef<A>): A {
+export function useSubscriptionRef<A>(
+  ref: SubscriptionRef.SubscriptionRef<A>,
+): A {
   const runtime = useRuntime();
 
   return useSyncExternalStore(
@@ -129,7 +133,9 @@ export function useSubscriptionRef<A>(ref: SubscriptionRef.SubscriptionRef<A>): 
 // main.ts
 const ShuffleLayer = Layer.succeed(Shuffle, { shuffle: fisherYatesShuffle });
 const runtime = ManagedRuntime.make(ShuffleLayer);
-const gameRef = runtime.runSync(newGame().pipe(Effect.andThen(SubscriptionRef.make)));
+const gameRef = runtime.runSync(
+  newGame().pipe(Effect.andThen(SubscriptionRef.make)),
+);
 
 render(
   <EffectProvider runtime={runtime}>
@@ -140,7 +146,11 @@ render(
 
 ```tsx
 // ui.tsx
-export function App({ gameRef }: { gameRef: SubscriptionRef.SubscriptionRef<Game> }) {
+export function App({
+  gameRef,
+}: {
+  gameRef: SubscriptionRef.SubscriptionRef<Game>;
+}) {
   const game = useSubscriptionRef(gameRef); // rerenders automatically
   const runtime = useRuntime();
   const [error, setError] = useState<string | null>(null);

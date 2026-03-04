@@ -128,14 +128,6 @@ const chooseActionType: Effect.Effect<Pick<Action, "type">> = Effect.promise(() 
   }),
 );
 
-function renderBird(bird: Bird): string {
-  return `${bird.name} (${bird.points})`;
-}
-
-function renderHabitat(birds: Bird[]): string {
-  return birds.map(renderBird).join(", ") || "(empty)";
-}
-
 export function step(state: Game, action: Action): Effect.Effect<Game, InvalidHabitat> {
   return (() => {
     switch (action.type) {

@@ -6,4 +6,10 @@ Learning [Effect] by implementing a board game.
 bun start
 ```
 
+## Testing
+
+```sh
+bun test
+```
+
 [Effect]: https://effect.website/

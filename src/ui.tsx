@@ -1,29 +1,34 @@
+import { ForegroundColorName } from "chalk";
 import { Effect } from "effect";
 import { Box, Text, useApp, useInput } from "ink";
 import { useState } from "react";
 import { calculateScore, isGameOver, newGame, step } from "./engine";
 import { randomShuffle } from "./shuffling";
-import { Bird, displayHabitats, habitatSymbol, habitats } from "./types";
+import { type Bird as BirdType, Habitat, habitats } from "./types";
 
-function BirdName({ bird }: { bird: Bird }) {
-  const reversed = displayHabitats(bird);
+const habitatColors: Record<Habitat, ForegroundColorName> = {
+  forest: "green",
+  grassland: "yellow",
+  wetland: "blue",
+};
+
+interface BirdProps {
+  bird: BirdType;
+}
+
+function Bird({ bird }: BirdProps) {
+  const { habitats } = bird;
   return (
     <>
-      {reversed.map((h, i) => (
-        <Text key={i}>
-          {i > 0 && " / "}
-          <Text color={habitatColors[h]}>{habitatSymbol}</Text>
-        </Text>
-      ))}
+      {bird.habitats.includes("wetland") ? <Text color={habitatColors.wetland}>●</Text> : " "}{" "}
+      {bird.habitats.includes("grassland") ? <Text color={habitatColors.grassland}>●</Text> : " "}{" "}
+      {bird.habitats.includes("forest") ? <Text color={habitatColors.forest}>●</Text> : " "}{" "}
       <Text>
-        {" "}
         {bird.name} ({bird.points})
       </Text>
     </>
   );
 }
-
-const habitatColors = { forest: "green", grassland: "yellow", wetland: "blue" } as const;
 
 type Phase =
   | { tag: "chooseAction" }
@@ -97,7 +102,7 @@ export function App() {
               ? game.board[h].map((bird, i) => (
                   <Text key={i}>
                     {i > 0 && ", "}
-                    <BirdName bird={bird} />
+                    <Bird bird={bird} />
                   </Text>
                 ))
               : "(empty)"}
@@ -126,7 +131,7 @@ export function App() {
             <Text color="white" dimColor>
               [{i + 1}]
             </Text>{" "}
-            <BirdName bird={bird} />
+            <Bird bird={bird} />
           </Text>
         ))}
         {game.hand.length === 0 && <Text dimColor>(empty)</Text>}

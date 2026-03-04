@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import birds, { acornWoodpecker, americanAvocet, americanBittern } from "./birds";
 import { Action, calculateScore, Game, isGameOver, newGame, step } from "./engine";
 import { identityShuffle, reverseShuffle } from "./shuffling";
-import { displayHabitats, InvalidHabitat } from "./types";
+import { InvalidHabitat } from "./types";
 
 describe("shuffle", () => {
   test("draws cards according to provided shuffle function", () => {
@@ -135,22 +135,4 @@ test("actions use turns", () => {
   ];
   const result = Effect.runSync(simulate(game, actions));
   expect(result.turnsLeft).toBe(22);
-});
-
-describe("displayHabitats", () => {
-  test("single habitat returns it unchanged", () => {
-    expect(displayHabitats(acornWoodpecker)).toEqual(["forest"]);
-  });
-
-  test("dual habitats are reversed", () => {
-    expect(displayHabitats({ name: "Test", habitats: ["forest", "grassland"], points: 0 })).toEqual(
-      ["grassland", "forest"],
-    );
-  });
-
-  test("triple habitats are reversed (wetland / grassland / forest)", () => {
-    expect(
-      displayHabitats({ name: "Test", habitats: ["forest", "grassland", "wetland"], points: 0 }),
-    ).toEqual(["wetland", "grassland", "forest"]);
-  });
 });

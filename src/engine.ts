@@ -136,19 +136,6 @@ function renderHabitat(birds: Bird[]): string {
   return birds.map(renderBird).join(", ") || "(empty)";
 }
 
-// function render(game: Game): void {
-//   console.log(
-//     [
-//       `\n--- Turn ${27 - game.turnsLeft} of 26 ---\n`,
-//       `Forest: ${renderHabitat(game.board.forest)}`,
-//       `Grassland: ${renderHabitat(game.board.grassland)}`,
-//       `Wetland: ${renderHabitat(game.board.wetland)}`,
-//       `\nFood: ${game.food} seed | Eggs: ${game.eggs} | Deck: ${game.deck.length} birds`,
-//       `\nHand: ${game.hand.map((b, i) => `[${i + 1}] ${renderBird(b)}`).join(", ") || "(empty)"}`,
-//     ].join("\n"),
-//   );
-// }
-
 export function step(state: Game, action: Action): Effect.Effect<Game, InvalidHabitat> {
   return (() => {
     switch (action.type) {
@@ -163,7 +150,6 @@ export function step(state: Game, action: Action): Effect.Effect<Game, InvalidHa
 const loop = (state: Game): Effect.Effect<Game> =>
   Effect.gen(function* () {
     if (isGameOver(state)) return state;
-    // render(state);
     const actionType = yield* chooseActionType;
     let action: Action;
     switch (actionType.type) {
@@ -190,14 +176,3 @@ const loop = (state: Game): Effect.Effect<Game> =>
     );
   });
 
-// const main = Effect.gen(function* () {
-//   yield* Console.log("=== Welcome to Divspan! ===");
-//   yield* Console.log("\nPlay birds or activate habitats across 26 turns.");
-//   const finalState = yield* loop(yield* newGame());
-//   render(finalState);
-//   yield* Console.log(`\nGame over! Final score: ${calculateScore(finalState)}`);
-// }).pipe(randomShuffle);
-
-// if (import.meta.main) {
-//   Effect.runPromise(main);
-// }

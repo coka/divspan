@@ -10,9 +10,11 @@ Each step introduces 1-2 new Effect features on top of the previous step.
 
 ## ~~Step 2 — Typed Errors~~ ✓
 
-**Effect features:** `Data.TaggedError`, `Effect.fail`, `catchTag`, `Effect.either`
+**Effect features:** `Data.TaggedError`, `Effect.fail`, `catchTag`,
+`Effect.either`
 
-- Birds have habitat restrictions; `playBird` validates and fails with `InvalidHabitat`
+- Birds have habitat restrictions; `playBird` validates and fails with
+  `InvalidHabitat`
 - CLI catches error and re-prompts
 - Tests verify invalid moves via `Effect.either`
 

@@ -6,16 +6,16 @@ Proposed
 
 ## Context
 
-Divspan uses **Effect** for game logic and **Ink (React)** for terminal UI. Currently,
-game state lives in React `useState`, and the engine is called synchronously at the
-React boundary via `Effect.runSync`. This works, but React owns the state while the
-engine is stateless — pure functions in, new state out.
+Divspan uses **Effect** for game logic and **Ink (React)** for terminal UI.
+Currently, game state lives in React `useState`, and the engine is called
+synchronously at the React boundary via `Effect.runSync`. This works, but React
+owns the state while the engine is stateless — pure functions in, new state out.
 
-As the game grows (concurrent fibers for multiplayer, timers, background effects, event
-streams for replay/undo), we'll want **Effect to own the state** via `SubscriptionRef`.
-The problem: React doesn't know when a `SubscriptionRef` changes. We need a glue
-layer — analogous to `react-redux` — that subscribes React components to Effect state
-changes.
+As the game grows (concurrent fibers for multiplayer, timers, background
+effects, event streams for replay/undo), we'll want **Effect to own the state**
+via `SubscriptionRef`. The problem: React doesn't know when a `SubscriptionRef`
+changes. We need a glue layer — analogous to `react-redux` — that subscribes
+React components to Effect state changes.
 
 ## Decision Drivers
 
@@ -29,31 +29,36 @@ changes.
 
 ### A. Manual sync (status quo)
 
-React `useState` holds game state. After running an Effect that produces new state,
-manually call `setState`.
+React `useState` holds game state. After running an Effect that produces new
+state, manually call `setState`.
 
 - (+) No abstraction, obvious control flow
-- (-) Two copies of truth (easy to desync), doesn't scale to concurrent/background effects
+- (-) Two copies of truth (easy to desync), doesn't scale to
+  concurrent/background effects
 
 ### B. `useSyncExternalStore` + `SubscriptionRef`
 
-Effect's `SubscriptionRef` emits a `changes: Stream<A>` on every update. A React hook
-bridges this to `useSyncExternalStore`. An Effect `Runtime` is provided via React context.
+Effect's `SubscriptionRef` emits a `changes: Stream<A>` on every update. A React
+hook bridges this to `useSyncExternalStore`. An Effect `Runtime` is provided via
+React context.
 
-- (+) Single source of truth, both sides use their native primitives, automatic rerenders
-- (-) Requires Effect Runtime in React context, subscription fiber lifecycle management
+- (+) Single source of truth, both sides use their native primitives, automatic
+  rerenders
+- (-) Requires Effect Runtime in React context, subscription fiber lifecycle
+  management
 
 ### C. `useReducer` with Effect as reducer
 
 Model game updates as `(state, action) => Effect<state>` inside `useReducer`.
 
 - (+) Familiar React mental model
-- (-) `useReducer` expects a synchronous pure reducer; shoehorning Effect in loses its
-  error channel and service requirements
+- (-) `useReducer` expects a synchronous pure reducer; shoehorning Effect in
+  loses its error channel and service requirements
 
 ### D. EventEmitter bridge
 
-Wrap `SubscriptionRef` updates with a Node `EventEmitter`. React subscribes via `useEffect`.
+Wrap `SubscriptionRef` updates with a Node `EventEmitter`. React subscribes via
+`useEffect`.
 
 - (+) Simple, well-known pattern
 - (-) Bypasses Effect's type-safe streaming, introduces a parallel primitive
@@ -178,8 +183,8 @@ export function App({
 | Game (domain)             | `SubscriptionRef` in Effect | Single source of truth for engine logic  |
 | Phase, error message (UI) | React `useState`            | Local to the view, not an engine concern |
 
-This mirrors the Redux convention: shared/domain state in the store, local UI state
-in components.
+This mirrors the Redux convention: shared/domain state in the store, local UI
+state in components.
 
 ## Consequences
 
@@ -187,28 +192,31 @@ in components.
 
 - Game state has a single owner (Effect); React is a pure subscriber
 - Engine tests don't change — still `Effect.runSync` with mock services
-- Natural path to multiplayer: multiple fibers reading/writing the same `SubscriptionRef`
+- Natural path to multiplayer: multiple fibers reading/writing the same
+  `SubscriptionRef`
 - `SubscriptionRef.changes` gives a free event stream for logging, replay, undo
 
 ### Negative
 
 - Adds an Effect Runtime lifecycle to manage (create, potentially dispose)
-- The subscription fiber runs for the lifetime of the component — must clean up on unmount
-- `useSyncExternalStore` requires referential stability; immutable updates (already the
-  pattern) satisfy this
+- The subscription fiber runs for the lifetime of the component — must clean up
+  on unmount
+- `useSyncExternalStore` requires referential stability; immutable updates
+  (already the pattern) satisfy this
 
 ### Risks
 
-- `runSync` on `SubscriptionRef.get` assumes the get is always synchronous. True for
-  in-memory refs, could break with exotic custom implementations.
-- React strict mode double-invokes effects. The subscribe/unsubscribe cycle must be
-  idempotent (it is — each subscribe forks a fresh fiber, each unsubscribe interrupts it).
+- `runSync` on `SubscriptionRef.get` assumes the get is always synchronous. True
+  for in-memory refs, could break with exotic custom implementations.
+- React strict mode double-invokes effects. The subscribe/unsubscribe cycle must
+  be idempotent (it is — each subscribe forks a fresh fiber, each unsubscribe
+  interrupts it).
 
 ## Open Questions
 
-1. Should `useSubscriptionRef` accept a **selector** `(a: A) => B` to avoid rerenders on
-   unrelated state changes? (Like `useSelector` in react-redux.)
-2. Should the Runtime be created with a `Layer` providing all services, or should services
-   be provided at individual call sites?
-3. Is `ManagedRuntime` the right abstraction, or would a plain `Runtime.Runtime` suffice
-   for synchronous-only usage?
+1. Should `useSubscriptionRef` accept a **selector** `(a: A) => B` to avoid
+   rerenders on unrelated state changes? (Like `useSelector` in react-redux.)
+2. Should the Runtime be created with a `Layer` providing all services, or
+   should services be provided at individual call sites?
+3. Is `ManagedRuntime` the right abstraction, or would a plain `Runtime.Runtime`
+   suffice for synchronous-only usage?

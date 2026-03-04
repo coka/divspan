@@ -10,7 +10,7 @@ function BirdName({ bird }: { bird: Bird }) {
   return (
     <>
       {reversed.map((h, i) => (
-        <Text key={h}>
+        <Text key={i}>
           {i > 0 && " / "}
           <Text color={habitatColors[h]}>{habitatSymbol}</Text>
         </Text>
@@ -92,7 +92,7 @@ export function App() {
             </Text>
             {game.board[h].length > 0
               ? game.board[h].map((bird, i) => (
-                  <Text key={bird.name}>
+                  <Text key={i}>
                     {i > 0 && ", "}
                     <BirdName bird={bird} />
                   </Text>

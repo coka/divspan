@@ -60,6 +60,9 @@ export function App() {
           });
         }
         return;
+      case "error":
+        setPhase({ tag: "chooseAction" });
+        return;
     }
   });
   const turn = 27 - game.turnsLeft;

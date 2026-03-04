@@ -143,10 +143,9 @@ describe("displayHabitats", () => {
   });
 
   test("dual habitats are reversed", () => {
-    expect(displayHabitats({ name: "Test", habitats: ["forest", "grassland"], points: 0 })).toEqual([
-      "grassland",
-      "forest",
-    ]);
+    expect(displayHabitats({ name: "Test", habitats: ["forest", "grassland"], points: 0 })).toEqual(
+      ["grassland", "forest"],
+    );
   });
 
   test("triple habitats are reversed (wetland / grassland / forest)", () => {

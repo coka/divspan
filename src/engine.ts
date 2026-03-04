@@ -175,4 +175,3 @@ const loop = (state: Game): Effect.Effect<Game> =>
       ),
     );
   });
-

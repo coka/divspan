@@ -3,10 +3,24 @@ import { Box, Text, useApp, useInput } from "ink";
 import { useState } from "react";
 import { calculateScore, isGameOver, newGame, step } from "./engine";
 import { randomShuffle } from "./shuffling";
-import { Bird, habitats } from "./types";
+import { Bird, displayHabitats, habitatSymbol, habitats } from "./types";
 
-function renderBird(bird: Bird): string {
-  return `${bird.name} (${bird.points})`;
+function BirdName({ bird }: { bird: Bird }) {
+  const reversed = displayHabitats(bird);
+  return (
+    <>
+      {reversed.map((h, i) => (
+        <Text key={h}>
+          {i > 0 && " / "}
+          <Text color={habitatColors[h]}>{habitatSymbol}</Text>
+        </Text>
+      ))}
+      <Text>
+        {" "}
+        {bird.name} ({bird.points})
+      </Text>
+    </>
+  );
 }
 
 const habitatColors = { forest: "green", grassland: "yellow", wetland: "blue" } as const;
@@ -76,7 +90,14 @@ export function App() {
             <Text color={habitatColors[h]} bold>
               {h.padEnd(10)}
             </Text>
-            {game.board[h].length > 0 ? game.board[h].map(renderBird).join(", ") : "(empty)"}
+            {game.board[h].length > 0
+              ? game.board[h].map((bird, i) => (
+                  <Text key={bird.name}>
+                    {i > 0 && ", "}
+                    <BirdName bird={bird} />
+                  </Text>
+                ))
+              : "(empty)"}
           </Text>
         ))}
       </Box>
@@ -102,7 +123,7 @@ export function App() {
             <Text color="white" dimColor>
               [{i + 1}]
             </Text>{" "}
-            {renderBird(bird)}
+            <BirdName bird={bird} />
           </Text>
         ))}
         {game.hand.length === 0 && <Text dimColor>(empty)</Text>}

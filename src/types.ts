@@ -15,6 +15,12 @@ export class InvalidHabitat extends Data.TaggedError("InvalidHabitat")<{
   habitat: Habitat;
 }> {}
 
+export const habitatSymbol = "●";
+
+export function displayHabitats(bird: Bird): readonly Habitat[] {
+  return [...bird.habitats].reverse();
+}
+
 export class Shuffle extends Context.Tag("ShuffleService")<
   Shuffle,
   { readonly shuffle: <T>(array: T[]) => T[] }
